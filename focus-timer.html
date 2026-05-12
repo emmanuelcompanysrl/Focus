@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root {
+  --black: #000000;
+  --green: #94dd26;
+  --green-dim: #3a5510;
+  --green-faint: #0f1f04;
+  --red: #ff3b30;
+  --red-dim: #5a1510;
+  --yellow: #ffe600;
+  --white: #ffffff;
+  --gray: #111111;
+  --gray-mid: #222222;
+  --gray-light: #2e2e2e;
+  --text-dim: #444444;
+  --text-mid: #777777;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+/* ── Header ── */
+.header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 36px;
+  z-index: 20;
+}
+
+.brand {
+  font-size: 11px;
+  letter-spacing: 0.38em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.session-count {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pip {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: background 0.4s;
+}
+.pip.done { background: var(--green); }
+
+.pulse-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+  opacity: 0.22;
+  flex-shrink: 0;
+  transition: opacity 0.4s;
+}
+.pulse-dot.active {
+  opacity: 1;
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0%   { box-shadow: 0 0 0 0   rgba(255,59,48,0.8); transform: scale(1); }
+  50%  { box-shadow: 0 0 0 8px rgba(255,59,48,0);   transform: scale(1.2); }
+  100% { box-shadow: 0 0 0 0   rgba(255,59,48,0);   transform: scale(1); }
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-icon:hover { color: var(--white); background: rgba(255,255,255,0.06); }
+
+/* ── Main ── */
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#ringCanvas {
+  display: block;
+  width: 420px;
+  height: 420px;
+}
+
+.timer-block {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-label {
+  font-size: 10px;
+  letter-spacing: 0.5em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.timer-display {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(58px, 9.5vw, 92px);
+  line-height: 1;
+  color: var(--green);
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 24px rgba(148,221,38,0.40), 0 0 70px rgba(148,221,38,0.14);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+
+/* ── Controls ── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 14px;
+  border-radius: 50%;
+  transition: color 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+.btn:active { transform: scale(0.91); }
+
+.btn-main {
+  width: 66px; height: 66px;
+  border-radius: 50%;
+  border: 1.5px solid var(--green-dim);
+  color: var(--green);
+  background: var(--green-faint);
+  transition: all 0.25s;
+}
+.btn-main:hover {
+  background: rgba(148,221,38,0.1);
+  border-color: var(--green);
+  box-shadow: 0 0 22px rgba(148,221,38,0.22);
+}
+.btn-main.active {
+  border-color: var(--red-dim);
+  color: var(--red);
+  background: rgba(255,59,48,0.08);
+}
+.btn-main.active:hover {
+  background: rgba(255,59,48,0.14);
+  border-color: var(--red);
+  box-shadow: 0 0 22px rgba(255,59,48,0.22);
+}
+
+/* ── Mode Switcher ── */
+.mode-switcher-wrap {
+  margin-top: 26px;
+  position: relative;
+  /* width set by JS to match exactly 3-tab bar */
+}
+
+/* right fade hint when custom tabs are present */
+.mode-switcher-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 40px;
+  border-radius: 0 22px 22px 0;
+  background: linear-gradient(to right, transparent, #000 85%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.mode-switcher-wrap.has-custom::after { opacity: 1; }
+
+.mode-switcher {
+  display: flex;
+  gap: 2px;
+  background: var(--gray);
+  border-radius: 22px;
+  padding: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+.mode-switcher::-webkit-scrollbar { display: none; }
+
+/* All tabs share the same style and same fixed width = 1/3 of bar */
+.mode-btn-base,
+.mode-btn-custom {
+  flex: 0 0 var(--tab-w, 106px); /* set by JS */
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 8px 4px;
+  border-radius: 20px;
+  transition: all 0.25s;
+  white-space: nowrap;
+  text-align: center;
+  scroll-snap-align: start;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.mode-btn-base.active,
+.mode-btn-custom.active {
+  background: var(--gray-mid);
+  color: var(--white);
+}
+
+/* ── Footer ── */
+.footer {
+  position: fixed;
+  bottom: 22px;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: #1a1a1a;
+  text-transform: uppercase;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ════════════════════════════════════
+   SETTINGS PANEL
+════════════════════════════════════ */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.settings-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.settings-panel {
+  width: 100%;
+  max-width: 520px;
+  background: #0a0a0a;
+  border: 1px solid #1c1c1c;
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  padding-bottom: 44px;
+  transform: translateY(100%);
+  transition: transform 0.38s cubic-bezier(0.32,0,0.15,1);
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+.settings-panel::-webkit-scrollbar { display: none; }
+.settings-overlay.open .settings-panel { transform: translateY(0); }
+
+.panel-handle {
+  width: 36px; height: 4px;
+  background: #242424;
+  border-radius: 2px;
+  margin: 14px auto 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 0;
+}
+
+.panel-title {
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+.panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  transition: color 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.panel-close:hover { color: var(--white); }
+
+.settings-section {
+  padding: 26px 28px 0;
+}
+
+.section-title {
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid #131313;
+  gap: 16px;
+}
+.settings-row:last-child { border-bottom: none; }
+
+.row-left { display: flex; flex-direction: column; gap: 3px; }
+.row-label { font-size: 12px; color: var(--white); letter-spacing: 0.04em; }
+.row-sub   { font-size: 9px;  color: var(--text-dim); letter-spacing: 0.1em; }
+
+.dur-wrap { display: flex; align-items: center; gap: 7px; }
+
+.duration-input {
+  background: #181818;
+  border: 1px solid #252525;
+  border-radius: 8px;
+  color: var(--white);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  padding: 8px 10px;
+  width: 60px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+  -moz-appearance: textfield;
+}
+.duration-input::-webkit-inner-spin-button,
+.duration-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.duration-input:focus { border-color: var(--green); }
+
+.unit-label { font-size: 9px; color: var(--text-dim); letter-spacing: 0.12em; }
+
+/* Toggle */
+.toggle {
+  width: 42px; height: 24px;
+  background: #1e1e1e;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  flex-shrink: 0;
+  transition: background 0.3s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #444;
+  transition: transform 0.3s, background 0.3s;
+}
+.toggle.on { background: rgba(148,221,38,0.18); }
+.toggle.on::after { background: var(--green); transform: translateX(18px); }
+
+.divider { height: 1px; background: #131313; margin: 22px 28px 0; }
+
+/* ── Custom form ── */
+.custom-form { padding: 20px 28px 0; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+
+.form-label {
+  font-size: 8px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.form-input {
+  background: #181818;
+  border: 1px solid #252525;
+  border-radius: 8px;
+  color: var(--white);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  -moz-appearance: textfield;
+}
+.form-input::-webkit-inner-spin-button,
+.form-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.form-input:focus { border-color: var(--green); }
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.color-swatch {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 2px solid #303030;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.color-swatch:hover { border-color: #555; }
+.color-swatch input[type="color"] {
+  position: absolute;
+  inset: -4px;
+  opacity: 0;
+  cursor: pointer;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+}
+
+.color-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.color-preset {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.color-preset:hover { transform: scale(1.18); }
+.color-preset.selected { border-color: rgba(255,255,255,0.8); }
+
+.btn-add {
+  width: 100%;
+  background: rgba(148,221,38,0.06);
+  border: 1px solid var(--green-dim);
+  border-radius: 10px;
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-add:hover {
+  background: rgba(148,221,38,0.13);
+  border-color: var(--green);
+}
+
+/* ── Custom list ── */
+.custom-list { padding: 0 28px; }
+
+.custom-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #131313;
+  gap: 12px;
+}
+
+.custom-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.custom-item-info { min-width: 0; }
+.custom-item-name {
+  font-size: 12px;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.custom-item-dur {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.custom-item-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+.btn-sm {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 7px;
+  border-radius: 6px;
+  display: flex;
+  transition: color 0.2s, background 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-sm:hover { color: var(--white); background: rgba(255,255,255,0.06); }
+.btn-sm.del:hover { color: var(--red); background: rgba(255,59,48,0.08); }
+
+/* Edit inline */
+.edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #131313;
+}
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.edit-actions { display: flex; gap: 8px; }
+
+.btn-save {
+  flex: 1;
+  background: rgba(148,221,38,0.08);
+  border: 1px solid var(--green-dim);
+  border-radius: 8px;
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-save:hover { background: rgba(148,221,38,0.16); border-color: var(--green); }
+
+.btn-cancel-edit {
+  flex: 1;
+  background: #161616;
+  border: 1px solid #252525;
+  border-radius: 8px;
+  color: var(--text-mid);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-cancel-edit:hover { color: var(--white); border-color: #444; }
+
+.empty-custom {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
+  text-align: center;
+  padding: 18px 0 6px;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="brand">Focus</div>
+  <div class="header-right">
+    <div class="session-count" id="pips"></div>
+    <div class="pulse-dot" id="pulseDot"></div>
+    <button class="btn-icon" id="btnSettings" title="Impostazioni">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div style="position:relative;display:inline-block;">
+    <canvas id="ringCanvas"></canvas>
+    <div class="timer-block">
+      <div class="mode-label" id="modeLabel">POMODORO</div>
+      <div class="timer-display" id="timerDisplay">25:00</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="btnReset" title="Reset">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+      </svg>
+    </button>
+    <button class="btn btn-main" id="btnPlay">
+      <svg id="iconPlay" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+      <svg id="iconPause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+        <rect x="5" y="4" width="4" height="16" rx="1"/>
+        <rect x="15" y="4" width="4" height="16" rx="1"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="mode-switcher-wrap" id="modeSwitcherWrap">
+    <div class="mode-switcher" id="modeSwitcher"></div>
+  </div>
+</div>
+
+<div class="footer">Emmanuel · Apps & Design</div>
+
+<!-- Settings Overlay -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-panel">
+    <div class="panel-handle"></div>
+
+    <div class="panel-header">
+      <div class="panel-title">Impostazioni</div>
+      <button class="panel-close" id="btnCloseSettings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Durations -->
+    <div class="settings-section">
+      <div class="section-title">Durate</div>
+      <div class="settings-row">
+        <div class="row-left">
+          <div class="row-label">Pomodoro</div>
+          <div class="row-sub">Sessione di focus</div>
+        </div>
+        <div class="dur-wrap">
+          <input class="duration-input" id="inpPomodoro" type="number" min="1" max="120" value="25">
+          <span class="unit-label">MIN</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="row-left">
+          <div class="row-label">Short Break</div>
+          <div class="row-sub">Pausa breve</div>
+        </div>
+        <div class="dur-wrap">
+          <input class="duration-input" id="inpShort" type="number" min="1" max="60" value="5">
+          <span class="unit-label">MIN</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="row-left">
+          <div class="row-label">Long Break</div>
+          <div class="row-sub">Pausa lunga</div>
+        </div>
+        <div class="dur-wrap">
+          <input class="duration-input" id="inpLong" type="number" min="1" max="120" value="15">
+          <span class="unit-label">MIN</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Toggles -->
+    <div class="settings-section">
+      <div class="section-title">Comportamento</div>
+      <div class="settings-row">
+        <div class="row-left">
+          <div class="row-label">Auto-start break</div>
+          <div class="row-sub">Avvia il break automaticamente</div>
+        </div>
+        <button class="toggle" id="toggleAutoBreak"></button>
+      </div>
+      <div class="settings-row">
+        <div class="row-left">
+          <div class="row-label">Auto-start pomodoro</div>
+          <div class="row-sub">Riprende dopo il break</div>
+        </div>
+        <button class="toggle" id="toggleAutoPomodoro"></button>
+      </div>
+      <div class="settings-row">
+        <div class="row-left">
+          <div class="row-label">Suono</div>
+          <div class="row-sub">Tono al termine del timer</div>
+        </div>
+        <button class="toggle on" id="toggleSound"></button>
+      </div>
+      <div class="settings-row">
+        <div class="row-left">
+          <div class="row-label">Vibrazione</div>
+          <div class="row-sub">Android Chrome · scuote il telefono</div>
+        </div>
+        <button class="toggle on" id="toggleVibration"></button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Custom timers -->
+    <div class="settings-section">
+      <div class="section-title">Timer personalizzati</div>
+    </div>
+
+    <div class="custom-form">
+      <div class="form-grid">
+        <div class="form-field">
+          <div class="form-label">Nome (opzionale)</div>
+          <input class="form-input" id="inpCustomName" type="text" placeholder="es. Deep Work" maxlength="24">
+        </div>
+        <div class="form-field">
+          <div class="form-label">Durata</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input class="form-input" id="inpCustomMin" type="number" min="0" max="99999" placeholder="45" style="width:72px" maxlength="5">
+            <span class="unit-label">MIN</span>
+            <input class="form-input" id="inpCustomSec" type="number" min="0" max="59" placeholder="00" style="width:54px" maxlength="2">
+            <span class="unit-label">SEC</span>
+          </div>
+        </div>
+      </div>
+      <div class="color-row">
+        <div class="form-label" style="white-space:nowrap;min-width:40px">Colore</div>
+        <div class="color-swatch" id="customColorSwatch">
+          <input type="color" id="inpCustomColor" value="#94dd26">
+        </div>
+        <div class="color-presets" id="colorPresets"></div>
+      </div>
+      <button class="btn-add" id="btnAddCustom">+ Aggiungi timer</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="custom-list" id="customList"></div>
+    <div style="height:8px"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════════
+const LOGICAL = 420, DPR = 4, PXSIZE = 420 * 4;
+const TOTAL_DOTS = 96, DOT_R = 4.2 * DPR, RING_R = 172 * DPR;
+const CX = PXSIZE / 2, CY = PXSIZE / 2;
+
+const canvas = document.getElementById('ringCanvas');
+const ctx    = canvas.getContext('2d');
+canvas.width = canvas.height = PXSIZE;
+canvas.style.width = canvas.style.height = LOGICAL + 'px';
+
+function drawRing(progress) {
+  ctx.clearRect(0, 0, PXSIZE, PXSIZE);
+  const elapsed = Math.round(progress * TOTAL_DOTS);
+  for (let i = 0; i < TOTAL_DOTS; i++) {
+    const a = (i / TOTAL_DOTS) * Math.PI * 2 - Math.PI / 2;
+    const x = CX + RING_R * Math.cos(a), y = CY + RING_R * Math.sin(a);
+    ctx.beginPath();
+    ctx.arc(x, y, DOT_R, 0, Math.PI * 2);
+    if (i < elapsed) {
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(255,255,255,0.55)';
+      ctx.shadowBlur  = 12 * DPR;
+    }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  ctx.beginPath();
+  ctx.arc(CX, CY, RING_R - 22 * DPR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = DPR;
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+const PRESET_COLORS = ['#94dd26','#ffe600','#ff3b30','#ff9f0a','#4fc3f7','#bf5af2','#ff375f','#30d158'];
+
+let settings = { pomodoro:25, short:5, long:15, autoBreak:false, autoPomodoro:false, sound:true, vibration:true };
+let customTimers = [];
+let currentMode  = 'pomodoro';
+let totalSeconds = 25 * 60;
+let remaining    = totalSeconds;
+let running      = false;
+let timerInterval = null;
+let sessionsDone = 0;
+
+// ═══════════════════════════════════════════════
+//  DOM refs
+// ═══════════════════════════════════════════════
+const timerEl     = document.getElementById('timerDisplay');
+const modeLabelEl = document.getElementById('modeLabel');
+const pulseDot    = document.getElementById('pulseDot');
+const btnPlay     = document.getElementById('btnPlay');
+const iconPlay    = document.getElementById('iconPlay');
+const iconPause   = document.getElementById('iconPause');
+const pipsEl      = document.getElementById('pips');
+const modeSwitcher = document.getElementById('modeSwitcher');
+
+// ═══════════════════════════════════════════════
+//  DISPLAY
+// ═══════════════════════════════════════════════
+function fmt(s) {
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+function setTimerColor(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  timerEl.style.color = hex;
+  timerEl.style.textShadow = `0 0 24px rgba(${r},${g},${b},0.5),0 0 70px rgba(${r},${g},${b},0.18)`;
+}
+
+function applyModeColor() {
+  if      (currentMode === 'pomodoro') setTimerColor('#94dd26');
+  else if (currentMode === 'short')    setTimerColor('#ffe600');
+  else if (currentMode === 'long')     setTimerColor('#ff3b30');
+  else {
+    const ct = customTimers.find(t => t.id === currentMode);
+    if (ct) setTimerColor(ct.color);
+  }
+}
+
+function updateDisplay() {
+  timerEl.textContent = fmt(remaining);
+  drawRing(1 - remaining / totalSeconds);
+}
+
+function updatePips() {
+  pipsEl.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'pip' + (i < sessionsDone ? ' done' : '');
+    pipsEl.appendChild(d);
+  }
+}
+
+function setRunning(val) {
+  running = val;
+  pulseDot.classList.toggle('active', val);
+  btnPlay.classList.toggle('active', val);
+  iconPlay.style.display  = val ? 'none'  : 'block';
+  iconPause.style.display = val ? 'block' : 'none';
+  drawRing(1 - remaining / totalSeconds);
+}
+
+// ═══════════════════════════════════════════════
+//  SOUND & VIBRATION
+// ═══════════════════════════════════════════════
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playDone() {
+  if (!settings.sound) return;
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // Two clean sine tones in quick succession — like a phone notification
+    const notes = [
+      { freq: 1046.5, start: 0,    decay: 0.45 }, // C6
+      { freq: 1318.5, start: 0.18, decay: 0.65 }, // E6 — slightly longer tail
+    ];
+
+    notes.forEach(({ freq, start, decay }) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      // Tiny high-pass style: mix sine + triangle for crisp attack
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.001, now + start);
+      gain.gain.linearRampToValueAtTime(0.32, now + start + 0.005); // snappy attack
+      gain.gain.exponentialRampToValueAtTime(0.001, now + start + decay);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + start);
+      osc.stop(now + start + decay + 0.05);
+
+      // Thin harmonic layer for definition
+      const osc2  = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.value = freq * 2;
+      gain2.gain.setValueAtTime(0.001, now + start);
+      gain2.gain.linearRampToValueAtTime(0.06, now + start + 0.004);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + start + 0.08);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + start);
+      osc2.stop(now + start + 0.1);
+    });
+  } catch(e) {}
+}
+
+// Countdown tick: last 3 seconds — very subtle, almost subliminal
+function playTick() {
+  if (!settings.sound) return;
+  try {
+    const ctx  = getAudioCtx();
+    const now  = ctx.currentTime;
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 920;
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.07, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.07);
+  } catch(e) {}
+}
+
+function vibrateOnDone() {
+  if (!settings.vibration) return;
+  if ('vibrate' in navigator) {
+    navigator.vibrate([150, 80, 150, 80, 300]);
+  }
+}
+function tick() {
+  if (remaining <= 0) {
+    clearInterval(timerInterval);
+    setRunning(false);
+    playDone();
+    vibrateOnDone();
+
+    if (currentMode === 'pomodoro') {
+      sessionsDone = Math.min(sessionsDone + 1, 4);
+      updatePips();
+      // Reset to full pomodoro time
+      remaining = totalSeconds;
+      updateDisplay();
+      saveState();
+      // Auto-start break if enabled, otherwise just wait
+      if (settings.autoBreak) {
+        setTimeout(() => switchMode('short'), 700);
+        setTimeout(() => { timerInterval = setInterval(tick, 1000); setRunning(true); }, 1100);
+      }
+    } else {
+      // Break ended — reset to full break time and wait
+      remaining = totalSeconds;
+      updateDisplay();
+      saveState();
+      // Auto-start pomodoro if enabled
+      if (settings.autoPomodoro) {
+        setTimeout(() => switchMode('pomodoro'), 700);
+        setTimeout(() => { timerInterval = setInterval(tick, 1000); setRunning(true); }, 1100);
+      }
+    }
+
+    // Flash the timer display
+    let f = 0;
+    const fl = setInterval(() => {
+      timerEl.style.opacity = timerEl.style.opacity === '0.15' ? '1' : '0.15';
+      if (++f >= 6) { clearInterval(fl); timerEl.style.opacity = '1'; }
+    }, 200);
+    return;
+  }
+  remaining--;
+  if (remaining <= 3 && remaining > 0) playTick();
+  updateDisplay();
+  saveState();
+}
+
+// ═══════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════
+function startStop() {
+  if (running) { clearInterval(timerInterval); setRunning(false); }
+  else { timerInterval = setInterval(tick, 1000); setRunning(true); }
+  saveState();
+}
+
+function reset() {
+  clearInterval(timerInterval);
+  setRunning(false);
+  remaining = totalSeconds;
+  updateDisplay();
+  saveState();
+}
+
+function switchMode(mode) {
+  clearInterval(timerInterval);
+  setRunning(false);
+  currentMode = mode;
+  if      (mode === 'pomodoro') { totalSeconds = settings.pomodoro * 60; modeLabelEl.textContent = 'POMODORO'; }
+  else if (mode === 'short')    { totalSeconds = settings.short    * 60; modeLabelEl.textContent = 'SHORT BREAK'; }
+  else if (mode === 'long')     { totalSeconds = settings.long     * 60; modeLabelEl.textContent = 'LONG BREAK'; }
+  else {
+    const ct = customTimers.find(t => t.id === mode);
+    if (ct) { totalSeconds = getDurationSecs(ct); modeLabelEl.textContent = (ct.name || 'CUSTOM').toUpperCase(); }
+  }
+  remaining = totalSeconds;
+  applyModeColor();
+  updateDisplay();
+  renderModeSwitcher();
+  saveState();
+  // Never auto-start on tab switch — user must press play manually
+}
+
+// ═══════════════════════════════════════════════
+//  MODE SWITCHER
+// ═══════════════════════════════════════════════
+function renderModeSwitcher() {
+  modeSwitcher.innerHTML = '';
+  const wrap = document.getElementById('modeSwitcherWrap');
+
+  // Calculate tab width so exactly 3 tabs fill the bar.
+  // Bar padding: 3px each side = 6px. Gap between 3 tabs: 2px × 2 = 4px.
+  // Total inner width for 3 tabs = barWidth - 6 - 4 = barWidth - 10.
+  // tabW = (barWidth - 10) / 3
+  // We want barWidth = 3 * tabW + 10, pick tabW = 106px → barWidth = 328px
+  const TAB_W  = 106;
+  const BAR_W  = TAB_W * 3 + 10; // 328px
+  wrap.style.width = BAR_W + 'px';
+
+  // Inject CSS variable so all tabs use it
+  modeSwitcher.style.setProperty('--tab-w', TAB_W + 'px');
+
+  const base = [
+    { id:'pomodoro', label:'Pomodoro' },
+    { id:'short',    label:'Short' },
+    { id:'long',     label:'Long' },
+  ];
+  base.forEach(m => {
+    const b = document.createElement('button');
+    b.className = 'mode-btn-base' + (currentMode === m.id ? ' active' : '');
+    b.style.flex = `0 0 ${TAB_W}px`;
+    b.textContent = m.label;
+    b.addEventListener('click', () => switchMode(m.id));
+    modeSwitcher.appendChild(b);
+  });
+
+  customTimers.forEach(ct => {
+    const b = document.createElement('button');
+    b.className = 'mode-btn-custom' + (currentMode === ct.id ? ' active' : '');
+    b.style.flex = `0 0 ${TAB_W}px`;
+    b.textContent = ct.name || 'Custom';
+    b.addEventListener('click', () => switchMode(ct.id));
+    modeSwitcher.appendChild(b);
+  });
+
+  wrap.classList.toggle('has-custom', customTimers.length > 0);
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS PANEL
+// ═══════════════════════════════════════════════
+const overlay = document.getElementById('settingsOverlay');
+
+function openSettings() {
+  document.getElementById('inpPomodoro').value = settings.pomodoro;
+  document.getElementById('inpShort').value    = settings.short;
+  document.getElementById('inpLong').value     = settings.long;
+  document.getElementById('toggleAutoBreak').classList.toggle('on', settings.autoBreak);
+  document.getElementById('toggleAutoPomodoro').classList.toggle('on', settings.autoPomodoro);
+  document.getElementById('toggleSound').classList.toggle('on', settings.sound);
+  document.getElementById('toggleVibration').classList.toggle('on', settings.vibration);
+  renderCustomList();
+  overlay.classList.add('open');
+}
+
+function closeSettings() {
+  const p = Math.min(120, Math.max(1, parseInt(document.getElementById('inpPomodoro').value) || 25));
+  const s = Math.min(60,  Math.max(1, parseInt(document.getElementById('inpShort').value)    || 5));
+  const l = Math.min(120, Math.max(1, parseInt(document.getElementById('inpLong').value)     || 15));
+  settings.pomodoro = p; settings.short = s; settings.long = l;
+  if (!running) {
+    if (currentMode === 'pomodoro') { totalSeconds = p * 60; remaining = totalSeconds; }
+    if (currentMode === 'short')    { totalSeconds = s * 60; remaining = totalSeconds; }
+    if (currentMode === 'long')     { totalSeconds = l * 60; remaining = totalSeconds; }
+    updateDisplay();
+  }
+  overlay.classList.remove('open');
+  saveState();
+}
+
+document.getElementById('btnSettings').addEventListener('click', openSettings);
+document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeSettings(); });
+
+document.getElementById('toggleAutoBreak').addEventListener('click', function() {
+  settings.autoBreak = !settings.autoBreak;
+  this.classList.toggle('on', settings.autoBreak);
+});
+document.getElementById('toggleAutoPomodoro').addEventListener('click', function() {
+  settings.autoPomodoro = !settings.autoPomodoro;
+  this.classList.toggle('on', settings.autoPomodoro);
+});
+document.getElementById('toggleSound').addEventListener('click', function() {
+  settings.sound = !settings.sound;
+  this.classList.toggle('on', settings.sound);
+});
+document.getElementById('toggleVibration').addEventListener('click', function() {
+  settings.vibration = !settings.vibration;
+  this.classList.toggle('on', settings.vibration);
+});
+
+// ═══════════════════════════════════════════════
+//  COLOR PRESETS
+// ═══════════════════════════════════════════════
+let pickedColor = '#94dd26';
+
+const presetsEl = document.getElementById('colorPresets');
+PRESET_COLORS.forEach(c => {
+  const d = document.createElement('div');
+  d.className = 'color-preset' + (c === pickedColor ? ' selected' : '');
+  d.style.background = c;
+  d.addEventListener('click', () => {
+    pickedColor = c;
+    document.getElementById('inpCustomColor').value = c;
+    document.getElementById('customColorSwatch').style.background = c;
+    presetsEl.querySelectorAll('.color-preset').forEach(p => p.classList.remove('selected'));
+    d.classList.add('selected');
+  });
+  presetsEl.appendChild(d);
+});
+
+document.getElementById('inpCustomColor').addEventListener('input', function() {
+  pickedColor = this.value;
+  document.getElementById('customColorSwatch').style.background = this.value;
+  presetsEl.querySelectorAll('.color-preset').forEach(p => p.classList.remove('selected'));
+});
+
+document.getElementById('customColorSwatch').style.background = pickedColor;
+
+// Enforce digit limits on number inputs (maxlength doesn't apply to type=number)
+function enforceMaxDigits(inputId, maxDigits) {
+  document.getElementById(inputId).addEventListener('input', function() {
+    if (this.value.length > maxDigits) this.value = this.value.slice(0, maxDigits);
+    if (parseInt(this.value) < 0) this.value = 0;
+  });
+}
+enforceMaxDigits('inpCustomMin', 5);
+enforceMaxDigits('inpCustomSec', 2);
+
+// ═══════════════════════════════════════════════
+//  CUSTOM TIMERS
+// ═══════════════════════════════════════════════
+document.getElementById('btnAddCustom').addEventListener('click', () => {
+  const name  = document.getElementById('inpCustomName').value.trim();
+  const mins  = Math.min(99999, Math.max(0, parseInt(document.getElementById('inpCustomMin').value) || 0));
+  const secs  = Math.min(59,    Math.max(0, parseInt(document.getElementById('inpCustomSec').value) || 0));
+  const color = document.getElementById('inpCustomColor').value || '#94dd26';
+  const totalSecs = mins * 60 + secs;
+  if (totalSecs < 1) {
+    document.getElementById('inpCustomMin').focus();
+    return;
+  }
+  customTimers.push({ id: 'ct_' + Date.now(), name, durationSecs: totalSecs, color });
+  saveCustomTimers();
+  renderCustomList();
+  renderModeSwitcher();
+  document.getElementById('inpCustomName').value = '';
+  document.getElementById('inpCustomMin').value  = '';
+  document.getElementById('inpCustomSec').value  = '';
+});
+
+function fmtDur(ct) {
+  const s = ct.durationSecs !== undefined ? ct.durationSecs : (ct.duration || 0) * 60;
+  const m = Math.floor(s / 60), sec = s % 60;
+  return sec > 0 ? `${m} min ${String(sec).padStart(2,'0')} sec` : `${m} min`;
+}
+
+function getDurationSecs(ct) {
+  return ct.durationSecs !== undefined ? ct.durationSecs : (ct.duration || 0) * 60;
+}
+
+function renderCustomList() {
+  const el = document.getElementById('customList');
+  el.innerHTML = '';
+  if (!customTimers.length) {
+    el.innerHTML = '<div class="empty-custom">Nessun timer personalizzato</div>';
+    return;
+  }
+  customTimers.forEach(ct => {
+    const row = document.createElement('div');
+    row.className = 'custom-item';
+    row.dataset.id = ct.id;
+    row.innerHTML = `
+      <div class="custom-item-left">
+        <div class="custom-dot" style="background:${ct.color};box-shadow:0 0 6px ${ct.color}66"></div>
+        <div class="custom-item-info">
+          <div class="custom-item-name">${ct.name || 'Custom Timer'}</div>
+          <div class="custom-item-dur">${fmtDur(ct)}</div>
+        </div>
+      </div>
+      <div class="custom-item-actions">
+        <button class="btn-sm edit" data-id="${ct.id}" title="Modifica">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-sm del" data-id="${ct.id}" title="Elimina">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+            <path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>`;
+    el.appendChild(row);
+  });
+
+  el.querySelectorAll('.btn-sm.edit').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.id)));
+  el.querySelectorAll('.btn-sm.del').forEach(b  => b.addEventListener('click', () => deleteCustom(b.dataset.id)));
+}
+
+function openEdit(id) {
+  const ct  = customTimers.find(t => t.id === id);
+  if (!ct) return;
+  const list = document.getElementById('customList');
+  const row  = list.querySelector(`.custom-item[data-id="${id}"]`);
+  if (!row) return;
+  row.style.display = 'none';
+
+  const existSecs = getDurationSecs(ct);
+  const existMin  = Math.floor(existSecs / 60);
+  const existSec  = existSecs % 60;
+
+  const ed = document.createElement('div');
+  ed.className = 'edit-row';
+  ed.innerHTML = `
+    <div class="edit-grid">
+      <div class="form-field">
+        <div class="form-label">Nome</div>
+        <input class="form-input" id="en_${id}" type="text" value="${ct.name||''}" maxlength="24">
+      </div>
+      <div class="form-field">
+        <div class="form-label">Durata</div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <input class="form-input" id="emin_${id}" type="number" min="0" max="99999" value="${existMin}" style="width:66px">
+          <span class="unit-label">MIN</span>
+          <input class="form-input" id="esec_${id}" type="number" min="0" max="59" value="${String(existSec).padStart(2,'0')}" style="width:50px">
+          <span class="unit-label">SEC</span>
+        </div>
+      </div>
+    </div>
+    <div class="color-row" style="margin-bottom:0">
+      <div class="form-label" style="white-space:nowrap;min-width:40px">Colore</div>
+      <div class="color-swatch" id="es_${id}" style="background:${ct.color}">
+        <input type="color" id="ec_${id}" value="${ct.color}">
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn-save" id="esv_${id}">Salva</button>
+      <button class="btn-cancel-edit" id="ecx_${id}">Annulla</button>
+    </div>`;
+  list.insertBefore(ed, row.nextSibling);
+
+  document.getElementById(`ec_${id}`).addEventListener('input', function() {
+    document.getElementById(`es_${id}`).style.background = this.value;
+  });
+  document.getElementById(`esv_${id}`).addEventListener('click', () => {
+    const name    = document.getElementById(`en_${id}`).value.trim();
+    const mins    = Math.min(99999, Math.max(0, parseInt(document.getElementById(`emin_${id}`).value) || 0));
+    const secs    = Math.min(59,    Math.max(0, parseInt(document.getElementById(`esec_${id}`).value) || 0));
+    const durSecs = mins * 60 + secs || getDurationSecs(ct);
+    const color   = document.getElementById(`ec_${id}`).value;
+    const idx     = customTimers.findIndex(t => t.id === id);
+    if (idx !== -1) customTimers[idx] = { id, name, durationSecs: durSecs, color };
+    saveCustomTimers();
+    renderCustomList();
+    renderModeSwitcher();
+    if (currentMode === id && !running) {
+      totalSeconds = durSecs; remaining = totalSeconds;
+      modeLabelEl.textContent = (name || 'CUSTOM').toUpperCase();
+      applyModeColor(); updateDisplay();
+    }
+  });
+  document.getElementById(`ecx_${id}`).addEventListener('click', () => {
+    ed.remove(); row.style.display = '';
+  });
+}
+
+function deleteCustom(id) {
+  if (currentMode === id) switchMode('pomodoro');
+  customTimers = customTimers.filter(t => t.id !== id);
+  saveCustomTimers();
+  renderCustomList();
+  renderModeSwitcher();
+}
+
+// ═══════════════════════════════════════════════
+//  PERSISTENCE
+// ═══════════════════════════════════════════════
+function saveCustomTimers() {
+  localStorage.setItem('focus_custom', JSON.stringify(customTimers));
+}
+function loadCustomTimers() {
+  try { const r = localStorage.getItem('focus_custom'); if (r) customTimers = JSON.parse(r); } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('focus_state', JSON.stringify({
+    currentMode, totalSeconds, remaining, running, sessionsDone, settings,
+    savedAt: running ? Date.now() : null,
+  }));
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem('focus_state');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.settings) settings = { ...settings, ...s.settings };
+    currentMode  = s.currentMode  || 'pomodoro';
+    totalSeconds = s.totalSeconds || settings.pomodoro * 60;
+    sessionsDone = s.sessionsDone || 0;
+    if (s.running && s.savedAt) {
+      remaining = Math.max(0, (s.remaining || totalSeconds) - Math.floor((Date.now() - s.savedAt) / 1000));
+    } else {
+      remaining = s.remaining !== undefined ? s.remaining : totalSeconds;
+    }
+    if      (currentMode === 'pomodoro') modeLabelEl.textContent = 'POMODORO';
+    else if (currentMode === 'short')    modeLabelEl.textContent = 'SHORT BREAK';
+    else if (currentMode === 'long')     modeLabelEl.textContent = 'LONG BREAK';
+    else {
+      const ct = customTimers.find(t => t.id === currentMode);
+      if (ct) modeLabelEl.textContent = (ct.name || 'CUSTOM').toUpperCase();
+      else { currentMode = 'pomodoro'; totalSeconds = settings.pomodoro * 60; remaining = totalSeconds; }    }
+    applyModeColor();
+    if (s.running && remaining > 0) { timerInterval = setInterval(tick, 1000); setRunning(true); }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); startStop(); }
+  if (e.code === 'KeyR')  reset();
+});
+
+document.addEventListener('visibilitychange', saveState);
+window.addEventListener('beforeunload', saveState);
+
+document.getElementById('btnPlay').addEventListener('click', startStop);
+document.getElementById('btnReset').addEventListener('click', reset);
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+loadCustomTimers();
+loadState();
+updatePips();
+updateDisplay();
+renderModeSwitcher();
+</script>
+</body>
+</html>
